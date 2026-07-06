@@ -1,0 +1,10 @@
+torch
+torchaudio
+transformers
+librosa
+soundfile
+jamo
+g2pkk
+numpy
+huggingface_hub<1.0
+gradio  # webapp.py(실음성) · clinical_app.py(임상 데모, 모델 불필요) 웹 UI

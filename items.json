@@ -1,0 +1,48 @@
+{
+  "description": "검사 문항. KOLRA 해독영역 구조 참고(자소-음소일치/음운규칙/무의미). type: nonword|phonrule|transparent. rule: 음운규칙 분류(문서용). 실제 임상 사용 시에는 표준화·규준화된 검사도구(KOLRA 등)의 정식 문항을 사용해야 함 — 아래는 구조 예시.",
+  "real_words": ["가","나","다","마","사","차","코","무","비","강","산","손","발","문","눈","말","밤","집","물","불"],
+  "items": [
+    {"word": "바다", "type": "transparent", "rule": "자소-음소일치"},
+    {"word": "구두", "type": "transparent", "rule": "자소-음소일치"},
+    {"word": "머리", "type": "transparent", "rule": "자소-음소일치"},
+    {"word": "나무", "type": "transparent", "rule": "자소-음소일치"},
+    {"word": "거미", "type": "transparent", "rule": "자소-음소일치"},
+    {"word": "모자", "type": "transparent", "rule": "자소-음소일치"},
+
+    {"word": "꽃을", "type": "phonrule", "rule": "연음"},
+    {"word": "옷이", "type": "phonrule", "rule": "연음"},
+    {"word": "낮에", "type": "phonrule", "rule": "연음"},
+    {"word": "국물", "type": "phonrule", "rule": "비음화"},
+    {"word": "밥물", "type": "phonrule", "rule": "비음화"},
+    {"word": "작년", "type": "phonrule", "rule": "비음화"},
+    {"word": "국밥", "type": "phonrule", "rule": "경음화"},
+    {"word": "숙제", "type": "phonrule", "rule": "경음화"},
+    {"word": "해돋이", "type": "phonrule", "rule": "구개음화"},
+    {"word": "같이", "type": "phonrule", "rule": "구개음화"},
+    {"word": "굳이", "type": "phonrule", "rule": "구개음화"},
+    {"word": "좋다", "type": "phonrule", "rule": "격음화(축약)"},
+    {"word": "많다", "type": "phonrule", "rule": "격음화(축약)"},
+    {"word": "축하", "type": "phonrule", "rule": "격음화(축약)"},
+    {"word": "신라", "type": "phonrule", "rule": "설측음화"},
+    {"word": "난로", "type": "phonrule", "rule": "설측음화"},
+    {"word": "읽다", "type": "phonrule", "rule": "겹받침+경음화"},
+    {"word": "앉다", "type": "phonrule", "rule": "겹받침+경음화"},
+
+    {"word": "누마", "type": "nonword", "rule": "일치형 의사단어"},
+    {"word": "디포", "type": "nonword", "rule": "일치형 의사단어"},
+    {"word": "바누", "type": "nonword", "rule": "일치형 의사단어"},
+    {"word": "머기", "type": "nonword", "rule": "일치형 의사단어"},
+    {"word": "노배", "type": "nonword", "rule": "일치형 의사단어"},
+    {"word": "푸리", "type": "nonword", "rule": "일치형 의사단어"},
+    {"word": "대곰", "type": "nonword", "rule": "받침 포함 의사단어"},
+    {"word": "곱디", "type": "nonword", "rule": "받침+경음화 의사단어"}
+  ],
+  "sentences": [
+    {"text": "나는 학교에 갑니다.", "level": "1단계(짧은 문장)"},
+    {"text": "엄마가 시장에 갔어요.", "level": "1단계(짧은 문장)"},
+    {"text": "토끼가 풀밭에서 놀아요.", "level": "2단계(연음·경음)"},
+    {"text": "해돋이를 보러 산에 같이 올라갔어요.", "level": "2단계(구개음화)"},
+    {"text": "옛날 어느 마을에 착한 농부가 살았습니다.", "level": "3단계(지문)"},
+    {"text": "농부는 아침 일찍 밭에 나갔습니다.", "level": "3단계(지문)"}
+  ]
+}

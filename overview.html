@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국어 난독증 읽기평가 시스템 — 구성 정리</title>
+<style>
+  :root{
+    --bg:#0f1720; --card:#172230; --ink:#e8eef5; --muted:#9fb0c3;
+    --line:#26384b; --accent:#4ea1ff; --good:#36c08a; --warn:#f0b84a; --bad:#f06a5a;
+    --code:#0b1118;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif;line-height:1.7;}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 22px 80px;}
+  header{border-bottom:2px solid var(--line);padding-bottom:18px;margin-bottom:8px;}
+  h1{font-size:1.7rem;margin:0 0 6px;}
+  h2{font-size:1.25rem;margin:38px 0 12px;color:var(--accent);
+    border-left:4px solid var(--accent);padding-left:10px;}
+  h3{font-size:1.05rem;margin:22px 0 8px;color:#cfe0f2;}
+  .sub{color:var(--muted);font-size:.95rem;}
+  p{margin:8px 0;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin:14px 0;}
+  .pill{display:inline-block;font-size:.78rem;padding:2px 9px;border-radius:999px;
+    border:1px solid var(--line);color:var(--muted);margin-right:6px;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem;}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#1c2a3a;color:#cfe0f2;}
+  code,.mono{font-family:"Consolas","D2Coding",monospace;}
+  .flow{background:var(--code);border:1px solid var(--line);border-radius:10px;
+    padding:16px;overflow-x:auto;font-family:"Consolas",monospace;font-size:.86rem;
+    color:#bfe3ff;white-space:pre;}
+  .good{color:var(--good);} .warn{color:var(--warn);} .bad{color:var(--bad);}
+  .tag{font-weight:700;}
+  ul{margin:8px 0 8px 4px;padding-left:20px;} li{margin:4px 0;}
+  .files{font-family:"Consolas",monospace;font-size:.85rem;background:var(--code);
+    border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:#bcd;}
+  .note{border-left:3px solid var(--warn);background:#1d1c12;padding:10px 14px;
+    border-radius:8px;margin:12px 0;color:#f3e4c4;}
+  .k{color:var(--accent);font-weight:700;}
+  footer{margin-top:50px;border-top:1px solid var(--line);padding-top:16px;
+    color:var(--muted);font-size:.85rem;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:680px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>📖 한국어 난독증 아동 읽기평가 시스템 (v0)</h1>
+  <div class="sub">구성·구현·평가 정리 · 학습 0(사전학습 모델 추론 + 규칙 코드)</div>
+</header>
+
+<div class="card">
+  <span class="pill">CTC 음소인식</span><span class="pill">G2P</span>
+  <span class="pill">DP 정렬</span><span class="pill">유형별 채점</span>
+  <span class="pill">GOP 신뢰도</span><span class="pill">유창성</span>
+  <span class="pill">Gradio</span>
+  <p style="margin-top:10px">정해진 단어·문장을 소리 내어 읽은 음성을 <b>정답 발음과 비교해 읽기 정확도를
+  자동 채점</b>한다. 핵심 가치는 <b>평가자 의존성 제거(일관된 자동 채점)</b>.</p>
+</div>
+
+<h2>1. 핵심 아이디어 — "전사"가 아니라 "정답 대비 채점"</h2>
+<p>읽어야 할 내용을 <b>이미 알고 있으므로</b>, "무슨 말을 하려 했나"(자유 전사)가 아니라
+<b>"이 정해진 음소열을 얼마나 정확히 읽었나"</b>를 측정한다.</p>
+<table>
+  <tr><th>원칙</th><th>이유</th></tr>
+  <tr><td><b>Whisper 안 씀</b></td>
+      <td>디코더 언어모델이 오독을 자동 보정([채상]→책상)해 진단 신호를 숨김 →
+          소리에 충실한 <b>CTC(wav2vec2)</b>만 사용</td></tr>
+  <tr><td><b>학습 0</b></td>
+      <td>공개 사전학습 모델을 <b>추론만</b>. G2P·정렬·채점은 일반 파이썬 코드</td></tr>
+  <tr><td><b>받침 일괄 무시 금지</b></td>
+      <td>음운규칙 적용력 = 난독증 핵심 신호 → 문항 유형별로 채점 엄격도 분기</td></tr>
+</table>
+
+<h2>2. 전체 처리 흐름</h2>
+<div class="flow">[음성 16kHz mono]
+        │
+        ▼  ① 음소 인식 (CTC, slplab)
+   음소열  예) "G U NG M U L"
+        │                         [정답 단어/문장]
+        │                                │ ② G2P (g2pkk): 국물 → 궁물
+        │                                ▼  + 음소 매핑 → 기대 음소열
+        │                          "G U NG M U L"
+        ▼                                ▼
+   ③ DP 정렬 ── 단어/어절별로 실제 음소를 기대 음소에 최적 배정
+        │
+        ▼  ④ 채점: 문항 유형별 규칙  +  GOP(발음 신뢰도)
+        ▼
+   단어/어절별  정·오 / 정확도 / (문장은) 읽기 속도</div>
+
+<h2>3. 단계별 구성요소</h2>
+
+<h3>① 음향 인식 (ASR · CTC)</h3>
+<ul>
+  <li><span class="k">음소 모델(주력)</span> <code>slplab/wav2vec2-xls-r-300m_phone-mfa_korean</code>
+      — 한국어 음소 45개를 로마자로 직접 출력. 1음절·짧은 단어에 강함.</li>
+  <li><span class="k">한글 모델(비교)</span> <code>kresnik/wav2vec2-large-xlsr-korean</code>
+      — 한글 음절 출력.</li>
+  <li>오디오는 <b>무조건 16kHz mono</b>로 변환 + 앞뒤 무음 트림·정규화(단어 인식 안정화).</li>
+  <li>외부 언어모델 없는 <b>argmax 디코딩</b> → 오독을 고치지 않음. <span class="mono">asr.py / phoneme_asr.py</span></li>
+</ul>
+
+<h3>② G2P (정답 → 기대 발음)</h3>
+<ul>
+  <li><code>g2pkk</code>로 철자를 실제 발음으로: 국물→[궁물](비음화), 꽃을→[꼬츨](연음),
+      해돋이→[해도지](구개음화).</li>
+  <li>문장은 전체를 G2P → <b>어절 넘는 연음까지 반영</b>(옛날 어느→옌나 러느), 공백으로 어절 분리.</li>
+  <li>배포 환경(mecab 없음) 대비 고정 문항 발음을 <b>미리 계산해 캐시</b>(pron_cache.json).
+      <span class="mono">g2p_expected.py / phoneme_map.py</span></li>
+</ul>
+
+<h3>③ 정렬 (alignment)</h3>
+<ul>
+  <li>단어 1개: <code>difflib</code>로 자모 정렬 → 대치/생략/첨가 추출.</li>
+  <li>목록·문장(연결발화): <b>DP 분할 정렬</b> — 실제 음소열을 단어/어절 순서대로
+      '연속 구간'으로 최적 분할해 배정. <b>1음절 단어가 누락돼 뒤가 밀려도 흡수.</b>
+      <span class="mono">align.py</span></li>
+</ul>
+
+<h3>④ 채점 (문항 유형별 규칙)</h3>
+<table>
+  <tr><th>유형</th><th>측정</th><th>채점 엄격도</th></tr>
+  <tr><td><b>무의미단어</b> (낟·풉·멀튼)</td><td>순수 해독력(맥락 추측 불가)</td>
+      <td class="bad">가장 엄격 — 거의 모든 음소 차이를 오류로</td></tr>
+  <tr><td><b>음운규칙 단어</b> (국물·꽃을)</td><td>음운규칙 적용 능력</td>
+      <td class="warn">규칙 적용 실패를 오류로</td></tr>
+  <tr><td><b>자소-음소 일치</b> (바다·구두)</td><td>기본 자모 대응</td>
+      <td class="good">받침 단순 조음 오류는 관대(단, 다른 실단어 되면 오류)</td></tr>
+</table>
+<p class="mono">scoring.py · 정확도 = 1 − (가중오류 / 기대 음소 수)</p>
+
+<h3>⑤ GOP — "제대로 읽었는데 틀림" 줄이기</h3>
+<div class="card">
+  <p>모델이 시→지처럼 비슷한 소리로 잘못 출력해도, <b>기대 음소를 음향에 강제정렬</b>해
+  "그 소리를 실제로 냈는지"의 신뢰도(GOP)를 직접 측정해 판정한다.</p>
+  <ul>
+    <li><span class="good">GOP 높음</span> = 또렷이 발음함 → 정답(자유인식이 틀려도 구제)</li>
+    <li><span class="warn">GOP 낮음</span> = 그 소리를 못 들음 → ⚠ 확인필요(오독일 수도, 인식 한계일 수도)</li>
+  </ul>
+  <p class="sub">torchaudio forced_align 사용. <span class="mono">gop.py</span>
+  · 임계값은 잠정값(임상가 채점본으로 보정 필요).</p>
+</div>
+
+<h3>⑥ 유창성 (속도)</h3>
+<p>문장 읽기에 <b>분당 음절수(SPM)</b> 추가 — 정확도 + 속도로 실제 '읽기 유창성' 검사에 근접.
+   <span class="mono">fluency.py</span></p>
+
+<h2>4. 사용한 모델</h2>
+<table>
+  <tr><th>용도</th><th>모델</th><th>비고</th></tr>
+  <tr><td>음소 CTC(주력)</td><td><code>slplab/wav2vec2-xls-r-300m_phone-mfa_korean</code></td>
+      <td>XLS-R 300M 기반, 한국어 음소 45개</td></tr>
+  <tr><td>한글 CTC(비교)</td><td><code>kresnik/wav2vec2-large-xlsr-korean</code></td>
+      <td>Zeroth-Korean</td></tr>
+  <tr><td>G2P</td><td><code>g2pkk</code></td><td>철자→발음</td></tr>
+  <tr><td>정렬</td><td><code>difflib</code> + 자체 DP</td><td>+ torchaudio forced_align(GOP)</td></tr>
+</table>
+<p class="sub">다른 후보(slplab-nia13, facebook espeak-IPA)도 A/B 테스트 → <b>한국어에선 더 낫지 않음</b>
+  (lateral 또는 더 나쁨). 공개 모델 중 slplab이 사실상 최선으로 확인.</p>
+
+<h2>5. 검사 모드 ↔ 실제 임상</h2>
+<table>
+  <tr><th>앱 모드</th><th>대응 검사</th><th>측정</th></tr>
+  <tr><td>목록 읽기</td><td><b>해독(decoding) 검사</b> (KOLRA 해독)</td>
+      <td>글자-소리 변환력(무의미단어 변별력 1위)</td></tr>
+  <tr><td>문장 읽기</td><td><b>읽기 유창성</b> 검사</td><td>정확도 + 속도</td></tr>
+  <tr><td>단어 1개</td><td>참고용</td><td>—</td></tr>
+</table>
+
+<h2>6. 구축 과정에서 해결한 문제들</h2>
+<div class="grid">
+  <div class="card"><b class="warn">짧은 단어 사각지대</b><br>
+    CTC 모델은 ~1초 미만 발화를 구조적으로 오인식(깨끗한 데이터도 0.8초로 자르면 깨짐).
+    → <b>여러 단어를 이어 읽는 '목록/문장' 모드</b>로 회피.</div>
+  <div class="card"><b class="warn">모델 정밀도</b><br>
+    kresnik는 단어를 대충 맞힘 → <b>음소 모델(slplab)로 전환</b>해 음소 단위 정밀도 확보
+    (낟→N A t 등 1음절도 포착).</div>
+  <div class="card"><b class="warn">제대로 읽었는데 오답</b><br>
+    ASR 미세 오인식(시↔지) → <b>GOP 주채점</b>으로 기대 음소 실현 신뢰도 직접 판정.</div>
+  <div class="card"><b class="warn">결과 가독성</b><br>
+    로마자 음소(N A k…)는 못 읽음 → <b>음소→한글 복원</b>으로 "들린대로" 표시.</div>
+</div>
+<h3>배포(HF Spaces) 빌드 이슈 4종</h3>
+<table>
+  <tr><th>문제</th><th>해결</th></tr>
+  <tr><td>eunjeon(mecab) 빌드 실패</td><td>고정 문항 발음 캐시(pron_cache.json) + g2pkk 선택적</td></tr>
+  <tr><td>huggingface_hub 버전 충돌(HfFolder)</td><td><code>huggingface_hub&lt;1.0</code> 핀</td></tr>
+  <tr><td>gradio 4.44.1 ↔ Python 3.13 충돌</td><td>gradio 5.9.1 + Python 3.11</td></tr>
+  <tr><td>"no api found"(additionalProperties bool 버그)</td><td>app.py에서 gradio_client 함수 패치</td></tr>
+</table>
+
+<h2>7. 성능 평가 (냉정하게)</h2>
+<table>
+  <tr><th>항목</th><th>성능</th><th>근거(실측)</th></tr>
+  <tr><td>연결발화 2+음절 단어</td><td class="good">🟢 양호</td>
+      <td>멀튼·궁물·해도지·바다·구두·강 음소 단위로 잘 인식</td></tr>
+  <tr><td>1음절 무의미단어(낟/풉)</td><td class="bad">🔴 불안정</td>
+      <td>누락·받침 흔들림 — 진단상 가장 중요한데 가장 약함</td></tr>
+  <tr><td>음소 미세차(ㅗ↔ㅜ, 시↔지)</td><td class="warn">🟡 애매</td>
+      <td>ASR 변동. GOP로 일부 구제, 임계값은 잠정</td></tr>
+  <tr><td>문장 어절 정확도</td><td class="good">🟢 양호</td><td>연음 반영, 어절별 정/오</td></tr>
+  <tr><td>파이프라인 안정성</td><td class="good">🟢 완성</td><td>정렬·채점·GOP·유창성 구조 견고, 단위테스트 통과</td></tr>
+</table>
+<div class="note"><b>한 줄 평가:</b> "동작하는 v0 개념증명"으로는 성공.
+  하지만 "임상에서 바로 믿고 쓸 정밀도"는 아직 아님 — off-the-shelf 모델의 천장에 막혀 있고,
+  정확도 도약은 <b>파인튜닝 + 캘리브레이션(데이터)</b> 단계가 필요.</div>
+
+<h2>8. 한계 & 다음 단계</h2>
+<ul>
+  <li><b>또래 규준</b> 없음 → 백분위 산출 불가(현재 원점수만). 진단엔 필수.</li>
+  <li><b>음운처리 검사</b>(음운인식·작업기억·RAN) 미구현 — 글자 없는 별도 과제.</li>
+  <li><b>파인튜닝</b>: ① 아동 정상음성(자동 라벨, 지금 가능) → ② 임상 라벨(SLP 전사, 보정·규준 동시 해결).
+      <span class="warn">주의: 라벨은 '실제 발음한 음소'로 — 정답 텍스트로 학습하면 self-correction 발생.</span></li>
+  <li><b>캘리브레이션</b>: GOP 임계값을 임상가 채점본과 대조(1순위 검증=무의미단어 일치도).</li>
+</ul>
+
+<h2>9. 파일 구조</h2>
+<div class="files">reading_assessment/
+├── asr.py / phoneme_asr.py     인식(한글 / 음소 CTC) + 전처리
+├── g2p_expected.py             정답→발음(G2P), 발음 캐시
+├── phoneme_map.py              한글발음 ↔ 음소 매핑/역매핑
+├── align.py                    자모/음소 분해 · difflib + DP 정렬
+├── scoring.py                  문항 유형별 채점 룰
+├── gop.py                      GOP(강제정렬 발음 신뢰도) 주채점
+├── fluency.py                  유창성 속도(분당 음절수)
+├── pipeline_list/phoneme/sentence.py   목록 · 음소 · 문장 파이프라인
+├── webapp.py / app.py          Gradio 4탭 UI / 배포 진입점
+├── items.json / pron_cache.json        문항 + 사전계산 발음
+└── tests/test_scoring.py       유형별 단위테스트(10종)</div>
+
+<h2>10. 배포</h2>
+<table>
+  <tr><th></th><th>gradio.live (임시)</th><th>HuggingFace Space (영구)</th></tr>
+  <tr><td>속도</td><td class="good">빠름(모델 로컬)</td><td class="warn">첫 채점 느림(모델 다운로드)</td></tr>
+  <tr><td>안정성</td><td class="warn">PC·프로세스 켜진 동안만</td><td class="good">항상 켜짐, 안 끊김</td></tr>
+  <tr><td>주소</td><td class="mono">*.gradio.live</td>
+      <td class="mono"><your-space>.hf.space</td></tr>
+</table>
+
+<footer>
+  한국어 난독증 아동 읽기평가 시스템 v0 · 이 도구는 '해독/유창성 정확도 채점 엔진'이며,
+  실제 난독증 진단에는 또래 규준 · 음운처리 검사 · 임상가 종합 판단이 추가로 필요하다.<br>
+  상세 기술문서: TECHNICAL.md · 파인튜닝 계획: FINETUNING.md
+</footer>
+
+</div>
+</body>
+</html>

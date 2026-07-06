@@ -1,0 +1,11 @@
+recordings/
+__pycache__/
+*.wav
+*.exe
+_*.py
+*.pyc
+
+.claude/
+profiles/*.json
+*.pptx
+*.xlsx
