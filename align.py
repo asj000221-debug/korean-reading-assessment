@@ -1,15 +1,12 @@
-"""STEP 3 — 자모 분해 + 정렬 + 오류 분류 (학습 0).
+"""자모 분해 + 정렬 + 오류 분류.
 
-기대 발음과 실제 발화를 '자모 단위'로 비교해 대치/생략/첨가를 추출한다(§2-5).
+기대 발음과 실제 발화를 자모 단위로 비교해 대치/생략/첨가를 뽑는다.
 
-설계 결정: 단순 j2hcj(h2j()) 분해는 위치 정보를 잃는다(초성 ㄱ == 종성 ㄱ).
-그러나 STEP 4 transparent 채점("종성 조음 오류는 관대, 단 다른 단어가 되면 오류")은
-'그 자모가 종성인가'를 알아야 한다. 따라서 위치(role) 태그를 보존해 분해한다.
+굳이 role 태그를 붙여 분해하는 이유: 단순 j2hcj(h2j()) 분해는 위치를 잃어
+초성 ㄱ과 종성 ㄱ을 못 가린다. 그런데 transparent 채점("종성 조음은 관대,
+단 다른 단어가 되면 오류")은 '이게 종성이냐'를 알아야 한다.
 
-각 토큰 = Jamo(char, role, syl) :
-  char : 자모 문자(예 'ㄱ')
-  role : 'onset'(초성) | 'nucleus'(중성) | 'coda'(종성)
-  syl  : 그 자모가 속한 원래 음절 인덱스(음절 경계 추적용)
+Jamo = (char, role, syl): 자모 문자, onset/nucleus/coda, 원래 음절 인덱스.
 """
 
 from collections import namedtuple
@@ -177,7 +174,7 @@ def diff_errors_by_word_tokens(exp_word_tokens, act_tokens, key=_key_jamo):
 
 
 def jamo_str(tokens):
-    """디버그용: Jamo 리스트를 'ㄱ(onset)' 식 문자열로."""
+    """디버그 출력용."""
     return " ".join(f"{t.char}" for t in tokens)
 
 

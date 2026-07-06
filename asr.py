@@ -1,9 +1,8 @@
-"""STEP 1 — ASR (CTC) 추론.
+"""wav2vec2 CTC 추론.
 
-설계 원칙(§2-3): Whisper류 금지. 디코더 LM이 오독을 자동 보정(self-correction)하기 때문.
-CTC 계열(wav2vec2)은 외부 LM 없이 음향 posterior에서 argmax 디코딩 → 오독을 고치지 않고 그대로 출력한다.
-
-핵심 함정(§6-1): 오디오는 무조건 16kHz mono float. 안 맞으면 인식이 통째로 망가진다.
+Whisper류는 못 쓴다 — 디코더 LM이 오독을 자동 보정(self-correction)해버려서
+읽기평가가 안 된다. CTC(wav2vec2)는 외부 LM 없이 argmax라 들린 대로 뱉는다.
+오디오는 반드시 16kHz mono float. 안 맞으면 인식이 통째로 망가진다.
 """
 
 from functools import lru_cache
@@ -19,7 +18,7 @@ TARGET_SR = 16000
 
 @lru_cache(maxsize=1)
 def _load():
-    """모델/프로세서를 1회만 로드해 캐시한다(매 호출 재로딩 방지)."""
+    """모델·프로세서는 한 번만 로드."""
     processor = Wav2Vec2Processor.from_pretrained(MODEL_NAME)
     model = Wav2Vec2ForCTC.from_pretrained(MODEL_NAME)
     model.eval()
@@ -27,7 +26,7 @@ def _load():
 
 
 def load_audio(wav_path):
-    """16kHz mono float32로 강제 변환해 로드한다(§6-1)."""
+    """16kHz mono float32로 강제 변환해 로드."""
     speech, _ = librosa.load(wav_path, sr=TARGET_SR, mono=True)
     return speech
 

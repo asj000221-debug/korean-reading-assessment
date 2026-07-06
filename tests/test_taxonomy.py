@@ -1,8 +1,7 @@
-"""임상 계층 검증 — PPT 실관찰 오류쌍을 ground truth로.
+"""임상 계층 검증 — 관찰 오류쌍을 ground truth로.
 
-익명화된 임상 사례연구에 기록된 관찰 오류를 분류기가 올바른 임상유형으로
-잡는지 검증한다. ASR 없이 (expected→actual) 문자열 주입.
-`python tests/test_taxonomy.py` 또는 pytest.
+익명화된 임상 사례연구에 기록된 관찰 오류를 분류기가 맞는 임상유형으로 잡는지 본다.
+ASR 없이 (expected→actual) 문자열 주입. pytest 또는 python tests/test_taxonomy.py.
 """
 
 import os

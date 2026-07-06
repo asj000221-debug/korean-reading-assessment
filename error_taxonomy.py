@@ -1,51 +1,32 @@
-"""STEP 4+ — 임상 오류유형 분류기 (난독증 진단 신호 추출, 학습 0).
+"""임상 오류유형 분류기 — 난독증 진단 신호 뽑기(규칙 기반).
 
-현재 시스템은 오류를 대치/생략/첨가(substitution/omission/insertion)로만 본다.
-그러나 임상가(SLP)는 *어떤 종류의* 오류인지를 본다 — 초성 생략인지, 음절 도치인지,
-활음(미끄러지는 모음) 탈락인지, ㅅ↔ㅈ 청각변별 혼동인지. 오류의 *질*이 곧 진단 신호다.
+기존엔 오류를 대치/생략/첨가로만 봤다. 그런데 임상가는 '어떤 종류'인지를 본다:
+초성 생략이냐, 음절 도치냐, 활음 탈락이냐, ㅅ↔ㅈ 혼동이냐. 오류의 질이 진단 신호다.
 
-이 모듈은 align.py의 raw Error(자모/음소 차이)에 **조음·음운 자질표**를 적용해
-난독증 임상에서 실제 관찰되는 오류유형으로 분류한다. 전부 규칙(학습 0).
+align의 raw Error에 조음·음운 자질표를 적용해 실제 관찰되는 오류유형으로 나눈다.
+카테고리는 익명화된 임상 사례연구의 관찰 오류에서 왔다. 예:
+  onset_deletion(초성 생략, 가죽→아욱), coda_deletion(종성 생략, 멀튼→머튼),
+  syllable_transposition(도치, 가방→바강), glide_simplification(활음 단순화, 야→아),
+  glide_insertion(활음 첨가, 카→콰), w_diphthong_confusion(웨↔워),
+  vowel_substitution(단모음 대치), sibilant_confusion(자두→사두, 진달래→신달래),
+  phonation_confusion(눈꺼풀→눈떠풀), place_confusion(배↔대), manner_confusion,
+  coda_substitution(끝소리규칙), rule_failure:<규칙>(국물→국물).
 
-분류 카테고리는 익명화된 임상 사례연구의 실관찰 오류에 근거한다:
-  onset_deletion          초성 생략        가죽→아욱, 까마귀→아아귀   (사례 관찰)
-  coda_deletion           종성 생략        멀튼→머튼, 판→파            (사례 관찰)
-  coda_substitution       종성 대치/중화   끝소리규칙 오류              (사례 관찰)
-  syllable_transposition  음절/자모 도치   가방→바강                   (사례 관찰)
-  glide_simplification    활음 단순화      야→아, 이.아 미끄러지기 실패 (사례 관찰)
-  glide_insertion         활음 첨가        카→콰, 키→퀴                (사례 관찰)
-  w_diphthong_confusion   w계 모음 혼동    웨↔워, 외↔왜↔웨            (사례 관찰)
-  vowel_substitution      단모음 대치      ㅗ↔ㅜ 등                    (사례 관찰)
-  sibilant_confusion      ㅅ↔ㅈ/ㅊ 혼동   자두→사두, 진달래→신달래     (사례 관찰)
-  phonation_confusion     평/경/격음 혼동  ㄲ↔ㄸ 눈꺼풀→눈떠풀          (사례 관찰)
-  place_confusion         조음위치 혼동    배↔대(ㅂ↔ㄷ), 뷔↔귀         (사례 관찰)
-  manner_confusion        조음방법 혼동    그 외 자음 대치
-  rule_failure:<규칙>     음운변동 미적용  국물→국물(비음화 실패)        (사례 관찰)
-  rule_overapplication    음운변동 과적용
-
-각 오류유형 → 약점 하위기술(skill_map 노드) + 심각도를 함께 반환해
-배치/처방 엔진(skill_map.py)과 종단 프로파일(learner_profile.py)이 바로 소비한다.
+각 유형에 약점 하위기술(skill_map 노드) + 심각도를 붙여 반환한다. 배치/처방
+엔진과 종단 프로파일이 그대로 받아 쓴다.
 """
 
 from collections import namedtuple
 
 from align import Jamo, decompose, diff_tokens
 
-# ── 임상 오류 1건 ──
-#   pattern  : 위 카테고리 문자열
-#   role     : onset|nucleus|coda|word(도치 등 음절경계 오류)
-#   skill    : 이 오류가 가리키는 약점 하위기술(skill_map 노드 id)
-#   severity : 'high'|'med'|'low' (난독증 변별 가중)
-#   detail   : 사람용 설명(예 'ㅅ→ㅈ')
-#   exp/act  : 한글 자모(표시용)
+# 임상 오류 1건. role은 word까지(도치 등 음절경계 오류), skill은 skill_map 노드 id,
+# severity는 high/med/low(난독증 변별 가중), detail은 'ㅅ→ㅈ' 같은 사람용 설명.
 ClinicalError = namedtuple(
     "ClinicalError", ["pattern", "role", "skill", "severity", "detail", "exp", "act"]
 )
 
-# ──────────────────────────────────────────────────────────────────────────
-# 조음 자질표 (한국어 자음)
-# ──────────────────────────────────────────────────────────────────────────
-# place: 조음위치, manner: 조음방법, phon: 발성유형(평/경/격), sib: 치찰성
+# 조음 자질표 (한국어 자음): 조음위치 / 조음방법 / 발성유형(평·경·격) / 치찰성
 _PLACE = {
     "ㅂ": "labial", "ㅃ": "labial", "ㅍ": "labial", "ㅁ": "labial",
     "ㄷ": "alveolar", "ㄸ": "alveolar", "ㅌ": "alveolar", "ㄴ": "alveolar",
@@ -67,21 +48,18 @@ _PHON = {  # 평음(lax)/경음(tense)/격음(aspirate)
     "ㄲ": "tense", "ㄸ": "tense", "ㅃ": "tense", "ㅆ": "tense", "ㅉ": "tense",
     "ㅋ": "asp", "ㅌ": "asp", "ㅍ": "asp", "ㅊ": "asp", "ㅎ": "asp",
 }
-# 치찰음 계열(ㅅ↔ㅈ↔ㅊ 혼동 = 사례연구 최다 청각변별 오류, 사례 관찰)
+# 치찰음 계열. ㅅ↔ㅈ↔ㅊ 혼동은 이 사례에서 가장 잦은 청각변별 오류였다.
 _SIBILANT = set("ㅅㅆㅈㅉㅊ")
 
-# ──────────────────────────────────────────────────────────────────────────
-# 모음 자질표 (활음 + 기본모음)
-# ──────────────────────────────────────────────────────────────────────────
-# (glide, base): glide ∈ {none, y, w}, base = 활음 제거한 단모음
+# 모음 자질표 (활음 + 기본모음). (glide, base): glide ∈ {none,y,w}, base=활음 뺀 단모음
 _VOWEL = {
     "ㅏ": ("none", "ㅏ"), "ㅐ": ("none", "ㅐ"), "ㅓ": ("none", "ㅓ"),
     "ㅔ": ("none", "ㅔ"), "ㅗ": ("none", "ㅗ"), "ㅜ": ("none", "ㅜ"),
     "ㅡ": ("none", "ㅡ"), "ㅣ": ("none", "ㅣ"),
-    # y계(미끄러지는 모음, 사례 관찰)
+    # y계(미끄러지는 모음)
     "ㅑ": ("y", "ㅏ"), "ㅒ": ("y", "ㅐ"), "ㅕ": ("y", "ㅓ"),
     "ㅖ": ("y", "ㅔ"), "ㅛ": ("y", "ㅗ"), "ㅠ": ("y", "ㅜ"),
-    # w계(이중모음, 사례 관찰)
+    # w계(이중모음)
     "ㅘ": ("w", "ㅏ"), "ㅙ": ("w", "ㅐ"), "ㅚ": ("w", "ㅔ"),
     "ㅝ": ("w", "ㅓ"), "ㅞ": ("w", "ㅔ"), "ㅟ": ("w", "ㅣ"),
     "ㅢ": ("w", "ㅣ"),  # ㅢ는 별도지만 활음형으로 취급
@@ -108,17 +86,16 @@ def _classify_onset_sub(exp_ch, act_ch):
         return "onset_insertion", "pa_phoneme", "med", f"∅→{act_ch}"
     fe, fa = _feat(exp_ch), _feat(act_ch)
     detail = f"{exp_ch}→{act_ch}"
-    # 1) 치찰음 혼동 (ㅅ↔ㅈ↔ㅊ) — 사례 최다, 청각변별 핵심
+    # 치찰음 혼동(ㅅ↔ㅈ↔ㅊ) — 이 사례 최다, 청각변별 핵심
     if fe["sib"] and fa["sib"] and exp_ch != act_ch:
         return "sibilant_confusion", "percept_sibilant", "high", detail
-    # 2) 발성유형(평/경/격) 혼동 — 위치·방법 같고 phon만 다름
+    # 위치·방법 같고 발성유형만 다르면 평/경/격 혼동
     if fe["place"] == fa["place"] and fe["manner"] == fa["manner"] \
             and fe["phon"] != fa["phon"]:
         return "phonation_confusion", "percept_consonant", "med", detail
-    # 3) 조음위치 혼동 — 방법 같고 위치만 다름 (배↔대)
+    # 방법 같고 위치만 다르면 조음위치 혼동 (배↔대)
     if fe["manner"] == fa["manner"] and fe["place"] != fa["place"]:
         return "place_confusion", "percept_consonant", "med", detail
-    # 4) 그 외 자음 대치 — 조음방법 혼동
     return "manner_confusion", "percept_consonant", "med", detail
 
 
@@ -127,20 +104,20 @@ def _classify_vowel_sub(exp_ch, act_ch):
     ge, be = _VOWEL.get(exp_ch, ("none", exp_ch))
     ga, ba = _VOWEL.get(act_ch, ("none", act_ch))
     detail = f"{exp_ch}→{act_ch}"
-    # 1) 활음 단순화: 기대는 활음 있는데 실제는 활음 없음 (야→아, 사례 관찰)
+    # 활음 단순화: 기대엔 활음 있는데 실제는 없음 (야→아)
     if ge != "none" and ga == "none":
         skill = "decode_vowel_glide" if ge == "y" else "decode_vowel_diphthong"
         return "glide_simplification", skill, "high", detail
-    # 2) 활음 첨가: 기대는 단모음인데 활음을 넣음 (카→콰, 키→퀴, 사례 관찰)
+    # 활음 첨가: 단모음인데 활음을 끼워 넣음 (카→콰, 키→퀴)
     if ge == "none" and ga != "none":
         return "glide_insertion", "decode_vowel_diphthong", "med", detail
-    # 3) w계 이중모음끼리 혼동 (웨↔워↔왜, 사례 관찰)
+    # w계 이중모음끼리 혼동 (웨↔워↔왜)
     if ge == "w" and ga == "w":
         return "w_diphthong_confusion", "decode_vowel_diphthong", "high", detail
-    # 4) y계끼리 혼동
+    # y계끼리 혼동
     if ge == "y" and ga == "y":
         return "glide_simplification", "decode_vowel_glide", "med", detail
-    # 5) 단모음 대치 (ㅗ↔ㅜ 등, 사례 관찰)
+    # 나머진 단모음 대치 (ㅗ↔ㅜ 등)
     return "vowel_substitution", "decode_vowel_simple", "med", detail
 
 
@@ -276,7 +253,7 @@ def summarize_profile(clinical_errors):
 
 
 if __name__ == "__main__":
-    # PPT 실관찰 오류로 분류 시연
+    # 관찰 오류 몇 개로 분류 시연
     cases = [
         ("가죽", "아욱", "초성 생략(사례 관찰)"),
         ("가방", "바강", "음절 도치(사례 관찰)"),

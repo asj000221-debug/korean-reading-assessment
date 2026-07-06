@@ -1,48 +1,41 @@
-"""STEP 4+ — 음운인식(PA) 과제 모듈 (글자 없는 청각 조작, 학습 0).
+"""음운인식(PA) 과제 — 글자 없는 청각 조작.
 
-기존 시스템은 '해독'(글자→소리)만 측정한다. 그러나 PPT 사례 관찰의 검사절차는
-세 영역 중 첫째가 **[음운인식]** — 글자 없이 소리만으로 조작하는 능력이다
-(음절/음소 수세기·분절·합성·생략·첨가·대치·도치, 사례 관찰).
+기존 시스템은 해독(글자→소리)만 잰다. 그런데 사례의 검사절차는 세 영역 중 첫째가
+음운인식이다 — 글자 없이 소리만으로 조작하기(음절/음소 수세기·분절·합성·생략·
+첨가·대치·도치).
 
-핵심 통찰: PA 과제는 '기대 응답 = 입력의 변환'이다. 아동이 구두로 응답하면
-기존 ASR+정렬 코어로 기대 응답과 비교해 채점할 수 있다. 이 모듈은
-  1) 변환 연산(blend/segment/delete/add/substitute/reverse, count)을 순수함수로
-  2) 과제 생성(기대 응답 계산) + 채점(응답↔기대 정렬)
-을 제공한다. 음향 인식은 기존 asr/phoneme_asr 재사용.
+포인트는 PA 과제의 '기대 응답 = 입력의 변환'이라는 점이다. 아동이 구두로 답하면
+기존 ASR+정렬 코어로 기대 응답과 비교해 채점할 수 있다. 여기선 변환 연산을 순수
+함수로 두고, 과제 생성(기대 응답 계산)과 채점(응답↔기대 정렬)만 얹는다.
+음향 인식은 asr/phoneme_asr 재사용.
 """
 
 from collections import namedtuple
 
 from align import Jamo, decompose, diff_tokens, tokens_to_text
 
-# PA 과제 1건
-#   level   : 'syllable' | 'phoneme'  (음절수준 / 음소수준)
-#   op      : 'count'|'blend'|'segment'|'delete'|'add'|'substitute'|'reverse'
-#   prompt  : 아동에게 들려줄 지시(사람용)
-#   stimulus: 입력 자극(들려줄 말소리)
-#   expected: 기대 응답(한글 또는 숫자 문자열)
-#   skill   : skill_map 노드 id (pa_syllable | pa_phoneme)
+# PA 과제 1건. level=syllable|phoneme, op=count/blend/segment/delete/add/substitute/
+# reverse, expected=기대 응답(한글 또는 숫자), skill=pa_syllable|pa_phoneme.
 PaTask = namedtuple("PaTask", ["level", "op", "prompt", "stimulus", "expected", "skill"])
 
 
 # ── 음절 수준 연산 (입력은 한글 음절 문자열) ──
 def syl_count(word):
-    """음절 수세기: '자동차' → '3' (사례 관찰)."""
+    """음절 수세기: '자동차'→'3'."""
     return str(sum(1 for ch in word if "가" <= ch <= "힣"))
 
 
 def syl_blend(parts):
-    """음절 합성: ['연','필'] → '연필' (사례 관찰)."""
     return "".join(parts)
 
 
 def syl_segment(word):
-    """음절 분절: '전화' → '전 화' (사례 관찰)."""
+    """'전화' → '전 화'."""
     return " ".join(ch for ch in word)
 
 
 def syl_delete(word, target):
-    """음절 생략: ('축구','구') → '축' (사례 관찰)."""
+    """음절 생략: ('축구','구')→'축'."""
     syls = list(word)
     if target in syls:
         syls.remove(target)
@@ -50,17 +43,16 @@ def syl_delete(word, target):
 
 
 def syl_add(word, syl, pos="front"):
-    """음절 첨가: ('바지','청','front') → '청바지' (사례 관찰)."""
     return syl + word if pos == "front" else word + syl
 
 
 def syl_reverse(word):
-    """음절 도치: '나무' → '무나' (사례 관찰). 도치는 사례 핵심 약점(가방→바강)."""
+    """음절 도치: '나무'→'무나'. 도치(가방→바강)는 이 사례의 핵심 약점."""
     return "".join(reversed(list(word)))
 
 
 def syl_substitute(word, old, new):
-    """음절 대치: ('호박','호','수') → '수박' (사례 관찰)."""
+    """('호박','호','수') → '수박'."""
     return word.replace(old, new, 1)
 
 
@@ -70,13 +62,13 @@ def _recompose(tokens):
 
 
 def phon_count(word):
-    """음소 수세기: 'cv' 단위. '버'(ㅂㅓ) → '2', '강'(ㄱㅏㅇ) → '3' (사례 관찰)."""
+    """음소 수세기(무음 초성 ㅇ 제외): '버'→'2', '강'→'3'."""
     toks = [t for t in decompose(word) if t.char != "ㅇ" or t.role != "onset"]
     return str(len(toks))
 
 
 def phon_blend(jamos):
-    """음소 합성: ['ㅂ','ㅓ'] → '버', ['ㄱ','ㅏ','ㅇ'] → '강' (사례 관찰)."""
+    """음소 합성: ['ㅂ','ㅓ']→'버', ['ㄱ','ㅏ','ㅇ']→'강'."""
     return _recompose(_assign_roles(jamos))
 
 
@@ -103,7 +95,7 @@ def _assign_roles(jamos):
 
 
 def phon_delete_onset(word):
-    """음소 생략(초성): '기' → '이' (ㄱ 빼기, 사례 관찰). '가죽'류 초성생략 진단과 짝."""
+    """음소 생략(초성): '기'→'이'(ㄱ 빼기). '가죽'류 초성생략 진단과 짝."""
     toks = decompose(word)
     out, removed = [], False
     for t in toks:
@@ -116,7 +108,7 @@ def phon_delete_onset(word):
 
 
 def phon_substitute_onset(word, new_onset):
-    """음소 대치(초성): ('저','ㅊ') → '처' (사례 관찰 ㅈ빼고 ㅊ)."""
+    """음소 대치(초성): ('저','ㅊ') → '처'."""
     toks = decompose(word)
     out, done = [], False
     for t in toks:

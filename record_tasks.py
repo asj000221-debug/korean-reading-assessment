@@ -1,23 +1,17 @@
 # -*- coding: utf-8 -*-
-"""매뉴얼 3과제 라이브 녹음·채점 하네스 (slplab CTC 파이프라인).
+"""3과제 라이브 녹음·채점 하네스 (slplab CTC).
 
-run_tasks.py 의 dry/wav 채점 로직을 '직접 말해서' 실증하는 대화형 도구.
-마이크는 사용자 본인 터미널에서만 잡히므로(에이전트 프로세스엔 오디오 세션 없음)
-이 스크립트는 사용자가 직접 실행한다.
+run_tasks.py 채점 로직을 '직접 말해서' 확인하는 대화형 도구. 마이크는 사용자 본인
+터미널에서만 잡혀서(에이전트 프로세스엔 오디오 세션이 없다) 사용자가 직접 돌린다.
 
     python record_tasks.py words [--section meaning|nonsense|all]
     python record_tasks.py para
-    python record_tasks.py pa [--targets 따,규,기떠]      # 생략 시 16개 전부
+    python record_tasks.py pa [--targets 따,규,기떠]   # 생략 시 16개 전부
     python record_tasks.py --list-devices
-    python record_tasks.py --device 1 words
 
-흐름(공통): 읽을 내용 제시 → [Enter] 눌러 녹음 시작 → 소리내어 읽기 →
-           [Enter] 다시 눌러 정지 → slplab 음소 인식 → 채점 → 결과.
-녹음 원본은 recordings/ 아래 타임스탬프 파일로 남겨 재채점(run_tasks --wav)이 가능하다.
-
-낱말/단락은 '열린 전사'(phoneme_asr) → 자모/어절 diff 채점,
-음운인식(합성)은 '닫힌집합 forced-align'(pa_synth.verify) 채점으로 각 과제의
-패러다임을 그대로 따른다(파인튜닝 없이 baseline).
+[Enter]로 녹음 시작·정지 → 음소 인식 → 채점. 원본은 recordings/에 타임스탬프로
+남겨 run_tasks --wav 로 재채점할 수 있다. 낱말/단락은 열린 전사, 음운인식은
+닫힌집합 forced-align — 과제별 패러다임을 그대로 따른다.
 """
 
 import argparse
@@ -80,7 +74,7 @@ def record_until_enter(device, countdown=True, max_seconds=180):
                             callback=cb, device=device)
     with stream:
         try:
-            input()  # Enter 누를 때까지 블록
+            input()
         except (EOFError, KeyboardInterrupt):
             pass
 

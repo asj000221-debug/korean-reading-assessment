@@ -1,18 +1,9 @@
-"""전체 파이프라인 — wav + 문항 → 점수 (§5).
+"""wav + 문항 → 점수 전체 파이프라인.
 
-흐름:
-  items.json 로드 (단어·유형)
-   → g2p_expected 로 기대 발음 생성
-   → asr.transcribe 로 실제 발화 인식 (또는 dry-run에서 actual 주입)
-   → align.diff_errors 로 오류 추출
-   → scoring 으로 유형별 채점
-   → 단어별/전체 정확도 리포트 출력
+items.json 로드 → 기대 발음 생성 → asr로 인식(또는 dry-run에서 actual 주입)
+→ 오류 추출 → 유형별 채점 → 리포트.
 
-사용법:
-  실음성:  python pipeline.py --items items.json --wav-dir ./wavs
-           (wavs/<word>.wav 를 각 문항에 매칭, 또는 items의 "wav" 필드 사용)
-  dry-run: python pipeline.py --items items.json --dry-run responses.json
-           (responses.json: {"단어": "인식결과", ...} — ASR 없이 채점 로직만 점검)
+dry-run은 responses.json {"단어": "인식결과"} 를 받아 ASR 없이 채점 로직만 돌린다.
 """
 
 import argparse

@@ -1,11 +1,10 @@
-"""트랙2 — 한글 발음 → slplab 음소(로마자) 변환.
+"""한글 발음 → slplab 음소(로마자) 변환.
 
 slplab/wav2vec2-xls-r-300m_phone-mfa_korean 의 vocab(45 phones)에 맞춰
-G2P 발음(한글)을 음소열로 변환한다. 모델 출력과 같은 표기여서 직접 비교 가능.
+G2P 발음(한글)을 음소열로 바꾼다. 모델 출력과 표기가 같아 바로 비교된다.
 
-검증된 대응(모델 실측):
-  궁물 -> G U NG M U L,  낟 -> N A t,  멀튼 -> M EO L Th EU N,
-  해도지 -> H E D O J I,  바다 -> B A D A,  강 -> G A NG
+모델 실측으로 맞춰본 예: 궁물→G U NG M U L, 낟→N A t, 멀튼→M EO L Th EU N,
+바다→B A D A, 강→G A NG.
 """
 
 from align import Jamo, decompose

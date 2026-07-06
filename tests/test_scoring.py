@@ -1,7 +1,7 @@
-"""STEP 4 검증 — 문항 유형별 채점 룰 단위 테스트.
+"""문항 유형별 채점 룰 단위 테스트.
 
-ASR 없이 scoring 로직만 검증한다(actual_text를 직접 주입).
-pytest로도, `python tests/test_scoring.py`로도 실행 가능.
+actual_text를 직접 주입해 ASR 없이 scoring 로직만 본다.
+pytest로도, python tests/test_scoring.py로도 돈다.
 """
 
 import os

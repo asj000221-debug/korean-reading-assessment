@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
-"""매뉴얼 3과제 Gradio 웹앱 — 브라우저 마이크로 녹음·채점.
+"""3과제 Gradio 웹앱 — 브라우저 마이크로 녹음·채점.
 
-터미널 오디오 세션 없이도 브라우저에서 바로 테스트할 수 있는 프런트엔드.
-녹음은 브라우저가 하고, 서버(이 프로세스)가 slplab 음소-CTC로 채점한다.
-채점 로직은 run_tasks.py / pa_synth.py 를 그대로 재사용한다(SSOT=task_db.py).
+터미널 오디오 세션 없이 브라우저에서 바로 돌려보는 프런트엔드. 녹음은 브라우저가,
+채점은 서버가 slplab 음소-CTC로 한다. 채점 로직은 run_tasks.py / pa_synth.py 재사용
+(SSOT=task_db.py). 탭은 낱말읽기 / 단락읽기 / 음운인식(합성) 세 개.
 
-  ① 낱말읽기  : 목록을 쭉 읽음 → 열린 음소전사 → 낱말별 유형 엄격도 채점
-  ② 단락읽기  : P1 지문을 읽음 → 어절 정렬 → 어절 정확도
-  ③ 음운인식  : 타깃 1개 합성발음 → 닫힌집합 forced-align → 정/오 + 순위
-
-실행:  python app_tasks.py         (로컬)   →  http://127.0.0.1:7860
-       python app_tasks.py --share (외부 공유 링크)
-첫 실행 시 slplab 음소모델(~1.2GB)을 HF Hub에서 자동 다운로드(수 분).
+python app_tasks.py 로 로컬(7860), --share 붙이면 공유 링크. 첫 실행 시 slplab
+음소모델(~1.2GB)을 HF Hub에서 자동 다운로드한다(수 분).
 """
 
 # --- gradio_client 알려진 버그 패치(app.py와 동일) ---

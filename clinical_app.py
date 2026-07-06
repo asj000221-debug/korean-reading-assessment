@@ -1,20 +1,11 @@
-"""난독증 임상 진단·처방 — 통합 데모 웹앱 (Gradio, 모델 불필요).
+"""난독증 임상 진단·처방 통합 데모 웹앱 (Gradio, 모델 불필요).
 
-신규 임상 계층(error_taxonomy / skill_map / phon_awareness / learner_profile /
-diagnose)을 한 화면에서 테스트한다. ASR/torch 없이 **텍스트 입력(dry-run)** 으로
-돌아가므로 어디서든 즉시 실행된다(마이크 채점은 기존 webapp.py가 담당).
+임상 계층(error_taxonomy / skill_map / phon_awareness / learner_profile / diagnose)을
+한 화면에서 굴려보는 데모. ASR/torch 없이 텍스트 입력(dry-run)으로만 돌아서 어디서든
+바로 뜬다(실음성 채점은 webapp.py). 탭은 단어 진단 / 회기 진단 리포트 / 발달 배치·처방
+/ 음운인식 과제 / 종단 프로파일.
 
-실행:
-    python clinical_app.py
-    → http://127.0.0.1:7861  (GRADIO_SHARE=1 이면 공개 링크)
-
-탭:
-  1) 단어 진단      — 기대발음→실제발화 한 쌍의 임상 오류유형 분류
-  2) 회기 진단 리포트 — 여러 문항을 한 번에 채점→오류프로파일→배치→처방
-  3) 발달 배치/처방   — 스킬별 정확도로 발달 사다리 + 다음목표 + 개선방향
-  4) 음운인식 과제    — 음절/음소 조작 과제 생성 + 응답 채점
-  5) 종단 프로파일    — 회기 누적 → 학습결과(긍정/한계)·유창성 추이 자동 생성
-  6) ℹ️ 설명
+python clinical_app.py → 127.0.0.1:7861 (GRADIO_SHARE=1이면 공개 링크).
 """
 
 import json
@@ -32,7 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(HERE, "item_bank.json"), encoding="utf-8") as f:
     BANK = json.load(f)
 
-# PPT 실관찰 오류쌍(단어 진단 탭 프리셋)
+# 관찰된 오류쌍 프리셋(단어 진단 탭). 키는 드롭다운 라벨.
 PPT_ERROR_EXAMPLES = {
     "가죽 → 아죽 (초성 생략, 사례 관찰)": ("가죽", "아죽"),
     "가방 → 바강 (음절 도치, 사례 관찰)": ("가방", "바강"),
