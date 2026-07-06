@@ -7,4 +7,5 @@ jamo
 g2pkk
 numpy
 huggingface_hub<1.0
+sounddevice  # record_tasks.py / record_and_score.py 마이크 녹음
 gradio  # webapp.py(실음성) · clinical_app.py(임상 데모, 모델 불필요) 웹 UI

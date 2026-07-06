@@ -6,6 +6,7 @@ _*.py
 *.pyc
 
 .claude/
+.pytest_cache/
 profiles/*.json
 *.pptx
 *.xlsx
