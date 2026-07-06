@@ -122,10 +122,10 @@ python record_tasks.py para                        # 단락 읽고 채점
 
 ### 🗂️ 포트폴리오
 
-이 저장소는 포트폴리오의 일부입니다. → **[전체 프로젝트 보기](https://github.com/asj000221-debug)**
+이 저장소는 포트폴리오의 일부입니다. → **[전체 프로젝트 보기](https://github.com/sungjin-ahn-dev)**
 
-- [MOCO — AI Coworker Platform](https://github.com/asj000221-debug/moco-ai-coworker)
-- [근감소증 예측 멀티모달 ML](https://github.com/asj000221-debug/sarcopenia-multimodal-ml)
-- [DTx 인지훈련 난이도 조정 봇](https://github.com/asj000221-debug/dtx-adaptive-training-bot)
+- [MOCO — AI Coworker Platform](https://github.com/sungjin-ahn-dev/moco-ai-coworker)
+- [근감소증 예측 멀티모달 ML](https://github.com/sungjin-ahn-dev/sarcopenia-multimodal-ml)
+- [DTx 인지훈련 난이도 조정 봇](https://github.com/sungjin-ahn-dev/dtx-adaptive-training-bot)
 - **한국어 난독증 읽기평가 엔진** ← 현재 저장소
-- [AICC 음성 상담 서버](https://github.com/asj000221-debug/aicc-voice-agent)
+- [AICC 음성 상담 서버](https://github.com/sungjin-ahn-dev/aicc-voice-agent)
