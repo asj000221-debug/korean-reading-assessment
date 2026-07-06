@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/img/banner.png" alt="한국어 난독증 읽기평가 엔진">
+</p>
+
 <div align="center">
 
 # 📖 한국어 난독증 읽기평가 엔진
@@ -111,3 +115,17 @@ python record_tasks.py para                        # 단락 읽고 채점
 
 <sub>이 저장소는 포트폴리오 열람용입니다. 실무 프로젝트에서 실제 음성·검사 문항·사례 자료를
 제거하고 목업 문항과 익명화된 참조로 재구성했습니다.</sub>
+
+---
+
+<!-- portfolio-footer -->
+
+### 🗂️ 포트폴리오
+
+이 저장소는 포트폴리오의 일부입니다. → **[전체 프로젝트 보기](https://github.com/asj000221-debug)**
+
+- [MOCO — AI Coworker Platform](https://github.com/asj000221-debug/moco-ai-coworker)
+- [근감소증 예측 멀티모달 ML](https://github.com/asj000221-debug/sarcopenia-multimodal-ml)
+- [DTx 인지훈련 난이도 조정 봇](https://github.com/asj000221-debug/dtx-adaptive-training-bot)
+- **한국어 난독증 읽기평가 엔진** ← 현재 저장소
+- [AICC 음성 상담 서버](https://github.com/asj000221-debug/aicc-voice-agent)
